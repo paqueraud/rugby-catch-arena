@@ -87,6 +87,17 @@ export const InfiniteStadiumField: React.FC<InfiniteStadiumFieldProps> = ({
   const lastFrameTimeRef = useRef(performance.now());
   const itemsRef = useRef<FlyingItem[]>([]);
   itemsRef.current = items;
+  const pausedAtRef = useRef<number | null>(null);
+
+  // The game loop runs once for the whole session and reads live values through refs.
+  // (Restarting it on every catch/option change used to reset the run clock, which
+  // cancelled the acceleration and re-scheduled spawns.)
+  const optionsRef = useRef({ includeFruits, includeMines, nightmareDensity, progressiveAcceleration });
+  optionsRef.current = { includeFruits, includeMines, nightmareDensity, progressiveAcceleration };
+  const ballsCaughtRef = useRef(ballsCaught);
+  ballsCaughtRef.current = ballsCaught;
+  const isPausedRef = useRef(isPaused);
+  isPausedRef.current = isPaused;
 
   const char = CHARACTERS[character];
 
@@ -193,8 +204,26 @@ export const InfiniteStadiumField: React.FC<InfiniteStadiumFieldProps> = ({
     nextFruitTimeRef.current = performance.now() + 1500;
     nextMineTimeRef.current = performance.now() + 2000;
     setCurrentBallDuration(3.0);
+    pausedAtRef.current = null;
+    setIsPaused(false);
     sound.playWhistle();
   };
+
+  // Freeze the run while paused: on resume, shift every clock by the paused duration
+  useEffect(() => {
+    if (isPaused) {
+      pausedAtRef.current = performance.now();
+      return;
+    }
+    if (pausedAtRef.current === null) return;
+    const pausedFor = performance.now() - pausedAtRef.current;
+    pausedAtRef.current = null;
+    sessionStartTimeRef.current += pausedFor;
+    nextBallTimeRef.current += pausedFor;
+    nextFruitTimeRef.current += pausedFor;
+    nextMineTimeRef.current += pausedFor;
+    setItems((prev) => prev.map((it) => ({ ...it, spawnTime: it.spawnTime + pausedFor })));
+  }, [isPaused]);
 
   // Main game loop
   useEffect(() => {
@@ -204,54 +233,66 @@ export const InfiniteStadiumField: React.FC<InfiniteStadiumFieldProps> = ({
     nextFruitTimeRef.current = performance.now() + 1500;
     nextMineTimeRef.current = performance.now() + 2000;
 
-    const gameLoop = (currentTime: number) => {
-      if (!isPaused) {
-        // Calculate progressive acceleration
-        // In progressive acceleration: starts at 3.0s duration per ball.
-        // As caught count and elapsed time increase, drops down to 1.0s!
-        // Also spawn interval drops from 3.0s down to 0.7s so balls overlap heavily!
-        let ballDurationMs = 2000;
-        let spawnIntervalMs = 2000;
+    const makeBall = (currentTime: number, durationMs: number): FlyingItem => {
+      const traj = generateRandomLinearTrajectory({ minSpan: 55, maxSpan: 85 });
+      return {
+        id: `inf-ball-${Date.now()}-${Math.random()}`,
+        type: 'rugby_ball',
+        startX: traj.startX,
+        startY: traj.startY,
+        endX: traj.endX,
+        endY: traj.endY,
+        spawnTime: currentTime,
+        durationMs,
+        rotationSpeed: traj.rotationSpeed,
+        initialRotation: traj.initialRotation,
+        isClicked: false,
+      };
+    };
 
-        if (progressiveAcceleration) {
-          const runSeconds = (currentTime - sessionStartTimeRef.current) / 1000;
-          // Progress factor: 0 at start, 1 after ~70s or 35 balls
-          const progress = Math.min(1, Math.max(0, runSeconds / 65 + ballsCaught / 35) / 2);
-          // Duration drops from 3000ms down to 1000ms
-          ballDurationMs = Math.round(3000 - progress * 2000);
-          // Spawn interval drops from 3000ms down to 650ms (simultaneous overlap!)
-          spawnIntervalMs = Math.round(3000 - progress * 2350);
-          setCurrentBallDuration(ballDurationMs / 1000);
+    const gameLoop = (currentTime: number) => {
+      if (!isPausedRef.current) {
+        const { includeFruits, includeMines, nightmareDensity, progressiveAcceleration } = optionsRef.current;
+
+        // Progressive acceleration: 0 at start, 1 after ~70s of play and ~35 balls caught
+        const runSeconds = (currentTime - sessionStartTimeRef.current) / 1000;
+        const progress = progressiveAcceleration
+          ? Math.min(1, (runSeconds / 70 + ballsCaughtRef.current / 35) / 2)
+          : 0;
+
+        let ballDurationMs: number;
+        let spawnIntervalMs: number;
+        let ballsPerSpawn: number;
+
+        if (nightmareDensity) {
+          // CAUCHEMAR: salvos of 3 balls at the same time (like the tournament mode),
+          // 4s flight shrinking to 1.8s, salvos overlapping as the game speeds up
+          ballsPerSpawn = 3;
+          ballDurationMs = progressiveAcceleration ? Math.round(4000 - progress * 2200) : 4000;
+          spawnIntervalMs = progressiveAcceleration ? Math.round(4500 - progress * 2900) : 4500;
         } else {
-          setCurrentBallDuration(2.0);
+          // One ball at a time: 3s flight shrinking to 1s, spawn interval 3s down to 0.65s
+          ballsPerSpawn = 1;
+          ballDurationMs = progressiveAcceleration ? Math.round(3000 - progress * 2000) : 2000;
+          spawnIntervalMs = progressiveAcceleration ? Math.round(3000 - progress * 2350) : 2000;
         }
+        setCurrentBallDuration(ballDurationMs / 1000);
 
         // 1. SPAWN RUGBY BALLS
         if (currentTime >= nextBallTimeRef.current) {
-          const traj = generateRandomLinearTrajectory({ minSpan: 55, maxSpan: 85 });
-          const newBall: FlyingItem = {
-            id: `inf-ball-${Date.now()}-${Math.random()}`,
-            type: 'rugby_ball',
-            startX: traj.startX,
-            startY: traj.startY,
-            endX: traj.endX,
-            endY: traj.endY,
-            spawnTime: currentTime,
-            durationMs: ballDurationMs,
-            rotationSpeed: traj.rotationSpeed,
-            initialRotation: traj.initialRotation,
-            isClicked: false,
-          };
-
-          setItems((prev) => [...prev, newBall]);
+          const newBalls = Array.from({ length: ballsPerSpawn }, () => makeBall(currentTime, ballDurationMs));
+          setItems((prev) => [...prev, ...newBalls]);
           nextBallTimeRef.current = currentTime + spawnIntervalMs;
         }
+
+        // Distractors get denser as the game accelerates
+        const distractorPace = 1 - progress * 0.4;
 
         // 2. SPAWN FRUITS (if enabled or nightmare)
         if ((includeFruits || nightmareDensity) && currentTime >= nextFruitTimeRef.current) {
           const fruits: FruitKind[] = ['banana', 'watermelon', 'orange', 'apple'];
           const traj = generateRandomLinearTrajectory({ minSpan: 50, maxSpan: 85 });
-          const fruitDur = Math.max(1600, ballDurationMs + 400);
+          const fruitDur = Math.max(1600, Math.min(ballDurationMs, 3000) + 400);
 
           const newFruit: FlyingItem = {
             id: `inf-fruit-${Date.now()}-${Math.random()}`,
@@ -269,15 +310,15 @@ export const InfiniteStadiumField: React.FC<InfiniteStadiumFieldProps> = ({
           };
 
           setItems((prev) => [...prev, newFruit]);
-          // Faster fruit spawns in nightmare
-          const fruitDelay = nightmareDensity ? 900 + Math.random() * 800 : 1800 + Math.random() * 1400;
-          nextFruitTimeRef.current = currentTime + fruitDelay;
+          // Nightmare: a deluge (~2-3 fruits per second), like the tournament nightmare
+          const fruitDelay = nightmareDensity ? 300 + Math.random() * 300 : 1800 + Math.random() * 1400;
+          nextFruitTimeRef.current = currentTime + fruitDelay * distractorPace;
         }
 
         // 3. SPAWN MINES (if enabled or nightmare)
         if ((includeMines || nightmareDensity) && currentTime >= nextMineTimeRef.current) {
           const traj = generateRandomLinearTrajectory({ minSpan: 50, maxSpan: 85 });
-          const mineDur = Math.max(1600, ballDurationMs + 600);
+          const mineDur = Math.max(1600, Math.min(ballDurationMs, 3000) + 600);
 
           const newMine: FlyingItem = {
             id: `inf-mine-${Date.now()}-${Math.random()}`,
@@ -288,15 +329,15 @@ export const InfiniteStadiumField: React.FC<InfiniteStadiumFieldProps> = ({
             endY: traj.endY,
             spawnTime: currentTime,
             durationMs: mineDur,
-            rotationSpeed: 60,
+            rotationSpeed: nightmareDensity ? 70 : 60,
             initialRotation: traj.initialRotation,
             isClicked: false,
           };
 
           setItems((prev) => [...prev, newMine]);
-          // Faster mine spawns in nightmare
-          const mineDelay = nightmareDensity ? 1000 + Math.random() * 900 : 2200 + Math.random() * 1600;
-          nextMineTimeRef.current = currentTime + mineDelay;
+          // Nightmare: a deluge of mines (~2 per second)
+          const mineDelay = nightmareDensity ? 350 + Math.random() * 350 : 2200 + Math.random() * 1600;
+          nextMineTimeRef.current = currentTime + mineDelay * distractorPace;
         }
 
         // 4. CLEAN UP EXPIRED ITEMS & DETECT MISSED BALLS (FOR COMBO)
@@ -338,14 +379,7 @@ export const InfiniteStadiumField: React.FC<InfiniteStadiumFieldProps> = ({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [
-    isPaused,
-    includeFruits,
-    includeMines,
-    nightmareDensity,
-    progressiveAcceleration,
-    ballsCaught,
-  ]);
+  }, []);
 
   return (
     <div className="w-full max-w-7xl mx-auto p-3 sm:p-5 flex flex-col gap-4">
@@ -496,7 +530,7 @@ export const InfiniteStadiumField: React.FC<InfiniteStadiumFieldProps> = ({
             type="button"
             onClick={() => setIncludeFruits((v) => !v)}
             className={`px-3 py-1.5 rounded-xl border font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-              includeFruits
+              includeFruits || nightmareDensity
                 ? 'bg-orange-500/20 border-orange-400 text-orange-300 shadow-sm'
                 : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-slate-200'
             }`}
@@ -510,7 +544,7 @@ export const InfiniteStadiumField: React.FC<InfiniteStadiumFieldProps> = ({
             type="button"
             onClick={() => setIncludeMines((v) => !v)}
             className={`px-3 py-1.5 rounded-xl border font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-              includeMines
+              includeMines || nightmareDensity
                 ? 'bg-red-500/20 border-red-400 text-red-300 shadow-sm'
                 : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-slate-200'
             }`}
@@ -530,7 +564,7 @@ export const InfiniteStadiumField: React.FC<InfiniteStadiumFieldProps> = ({
             }`}
           >
             <span>☠️</span>
-            <span>Cauchemar (Déluge)</span>
+            <span>Cauchemar (3 ballons + déluge)</span>
           </button>
 
           {/* Option 4: Accélération du jeu (3s -> 1s + superposition) */}
@@ -694,7 +728,8 @@ export const InfiniteStadiumField: React.FC<InfiniteStadiumFieldProps> = ({
             <span>🏉 Mode Infini · Attrapez les ballons sans fin</span>
             <span aria-hidden="true">·</span>
             <span className="text-amber-400 font-semibold font-display">
-              {progressiveAcceleration ? `Vitesse : ${currentBallDuration.toFixed(1)}s` : 'Vitesse stable : 2.0s'}
+              {nightmareDensity ? '☠️ 3 ballons · ' : ''}
+              {progressiveAcceleration ? `Vitesse : ${currentBallDuration.toFixed(1)}s` : `Vitesse stable : ${currentBallDuration.toFixed(1)}s`}
             </span>
           </div>
           <div className="font-semibold text-slate-400 hidden sm:block">

@@ -10,7 +10,7 @@ import { sound } from './services/sound';
 import { PWAInstallButton } from './components/PWAInstallButton';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { ZipDownloadModal } from './components/ZipDownloadModal';
-import { Volume2, VolumeX, RotateCcw, Info, X, Shield, Sparkles, Infinity, Trophy, Download, Maximize2, Minimize2, Tablet, Github, Share } from 'lucide-react';
+import { Volume2, VolumeX, RotateCcw, Info, X, Shield, Sparkles, Infinity, Trophy, Download, Maximize2, Minimize2, Tablet, Github, Share, Menu } from 'lucide-react';
 
 const DEFAULT_SETTINGS: GameSettings = {
   difficulty: 'normale',
@@ -31,6 +31,7 @@ export default function App() {
   const [showGithubModal, setShowGithubModal] = useState<boolean>(false);
   const [showZipModal, setShowZipModal] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [showMenu, setShowMenu] = useState<boolean>(false);
 
   // Toggle browser fullscreen (ideal for tablets)
   const toggleFullscreen = async () => {
@@ -227,7 +228,7 @@ export default function App() {
             <span className="hidden lg:inline">ZIP Windows</span>
           </button>
 
-          {phase !== 'SETUP' ? (
+          {phase !== 'SETUP' && (
             <button
               type="button"
               onClick={handleNewSetup}
@@ -236,16 +237,51 @@ export default function App() {
               <RotateCcw className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Quitter</span>
             </button>
-          ) : (
+          )}
+
+          {/* Compact menu (replaces the text nav below xl) */}
+          <div className="relative xl:hidden">
             <button
               type="button"
-              onClick={() => setShowRulesModal(true)}
-              className="xl:hidden p-2 text-slate-300 hover:text-white bg-slate-800 rounded-lg border border-slate-700"
-              aria-label="Règles"
+              onClick={() => setShowMenu((v) => !v)}
+              className={`p-2 rounded-lg border cursor-pointer transition-colors ${
+                showMenu
+                  ? 'bg-amber-500 text-slate-950 border-amber-400'
+                  : 'text-slate-300 hover:text-white bg-slate-800 border-slate-700'
+              }`}
+              aria-label="Menu"
+              aria-expanded={showMenu}
             >
-              <Info className="w-4 h-4" />
+              {showMenu ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
             </button>
-          )}
+
+            {showMenu && (
+              <>
+                {/* Tap outside to close */}
+                <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
+                <div className="absolute right-0 top-full mt-2 z-50 w-60 max-w-[calc(100vw-1.5rem)] bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-1.5 text-sm">
+                  {[
+                    { label: 'Règles du Jeu', icon: <Info className="w-4 h-4 text-amber-400" />, onClick: () => setShowRulesModal(true) },
+                    { label: 'Les 5 Mascottes', icon: <Sparkles className="w-4 h-4 text-amber-400" />, onClick: () => setShowCharactersModal(true) },
+                    { label: 'Tablette & GitHub', icon: <Tablet className="w-4 h-4 text-emerald-400" />, onClick: () => setShowGithubModal(true) },
+                  ].map((entry) => (
+                    <button
+                      key={entry.label}
+                      type="button"
+                      onClick={() => {
+                        setShowMenu(false);
+                        entry.onClick();
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left font-medium text-slate-200 hover:bg-slate-800 active:bg-slate-800 cursor-pointer"
+                    >
+                      {entry.icon}
+                      <span>{entry.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </header>
 
@@ -350,7 +386,7 @@ export default function App() {
                 <ul className="text-slate-400 space-y-1 text-xs">
                   <li>• <strong>Fruits (Normal) :</strong> trompeurs traversant l'écran.</li>
                   <li>• <strong>Mines (Difficile) :</strong> explosives (-2 pts).</li>
-                  <li>• <strong>Cauchemar :</strong> déluge intense de fruits et de mines simultanés.</li>
+                  <li>• <strong>Cauchemar :</strong> salves de 3 ballons EN MÊME TEMPS + déluge de fruits et de mines (combinable avec l'accélération).</li>
                   <li>• <strong>Accélération :</strong> ballons apparaissant d'abord 3s l'un après l'autre, puis accélérant jusqu'à 1s avec superposition !</li>
                 </ul>
               </div>
