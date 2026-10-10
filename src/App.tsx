@@ -134,21 +134,21 @@ export default function App() {
     currentPlayerIndex === players.length - 1 && currentRound === settings.totalRounds;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-slate-950">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-slate-950">
       {/* TOP BAR CONTRACT: Zone 1 (Brand) — Zone 2 (Nav Links) — Zone 3 (Action) */}
-      <header className="flex items-center justify-between gap-8 px-4 sm:px-8 py-3.5 border-b border-slate-800 bg-slate-900/95 backdrop-blur-md sticky top-0 z-40">
+      <header className="flex items-center justify-between gap-3 px-3 sm:px-6 py-3 border-b border-slate-800 bg-slate-900/95 backdrop-blur-md sticky top-0 z-40">
         {/* Zone 1: Brand wordmark */}
         <button
           type="button"
           onClick={handleNewSetup}
-          className="text-lg sm:text-xl font-black tracking-tight text-white uppercase font-display whitespace-nowrap shrink-0 flex items-center gap-2 text-left cursor-pointer hover:opacity-90 transition-opacity"
+          className="text-base sm:text-xl font-black tracking-tight text-white uppercase font-display whitespace-nowrap min-w-0 flex items-center gap-2 text-left cursor-pointer hover:opacity-90 transition-opacity"
         >
           <span className="text-amber-400">🏉</span>
-          <span>Rugby Catch Arena</span>
+          <span className="truncate">Rugby Catch Arena</span>
         </button>
 
         {/* Zone 2: Navigation Links */}
-        <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-300">
+        <nav className="hidden xl:flex items-center gap-6 text-sm font-medium text-slate-300">
           <button
             type="button"
             onClick={() => setShowRulesModal(true)}
@@ -199,18 +199,28 @@ export default function App() {
           <button
             type="button"
             onClick={toggleFullscreen}
-            className="hidden sm:flex p-1.5 text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition cursor-pointer"
+            className="hidden md:flex p-2 text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition cursor-pointer"
             title={isFullscreen ? "Quitter le plein écran" : "Passer en plein écran (idéal tablette)"}
             aria-label="Plein écran"
           >
             {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
           </button>
 
+          {/* Compact sound toggle (the text nav is hidden below xl) */}
+          <button
+            type="button"
+            onClick={toggleSound}
+            className="xl:hidden p-2 text-slate-300 hover:text-white bg-slate-800 rounded-lg border border-slate-700 cursor-pointer"
+            aria-label={soundEnabled ? 'Couper le son' : 'Activer le son'}
+          >
+            {soundEnabled ? <Volume2 className="w-4 h-4 text-amber-400" /> : <VolumeX className="w-4 h-4 text-slate-500" />}
+          </button>
+
           {/* Verified ZIP Download for Windows & Offline */}
           <button
             type="button"
             onClick={() => setShowZipModal(true)}
-            className="px-2.5 py-1.5 text-xs font-bold text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/50 rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer shadow-sm"
+            className="hidden md:flex px-2.5 py-1.5 text-xs font-bold text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/50 rounded-lg transition-colors whitespace-nowrap shrink-0 items-center gap-1.5 cursor-pointer shadow-sm"
             title="Télécharger l'archive ZIP certifiée valide (Windows & Offline)"
           >
             <Download className="w-3.5 h-3.5" />
@@ -224,13 +234,13 @@ export default function App() {
               className="px-3 py-1.5 text-xs font-bold text-slate-200 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>Quitter</span>
+              <span className="hidden sm:inline">Quitter</span>
             </button>
           ) : (
             <button
               type="button"
               onClick={() => setShowRulesModal(true)}
-              className="md:hidden p-2 text-slate-300 hover:text-white bg-slate-800 rounded-lg border border-slate-700"
+              className="xl:hidden p-2 text-slate-300 hover:text-white bg-slate-800 rounded-lg border border-slate-700"
               aria-label="Règles"
             >
               <Info className="w-4 h-4" />
@@ -257,7 +267,7 @@ export default function App() {
             isSoundEnabled={soundEnabled}
           />
         ) : (
-          <div className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 flex flex-col lg:flex-row gap-5 items-stretch">
+          <div className="flex-1 max-w-7xl w-full min-w-0 mx-auto p-3 sm:p-6 flex flex-col lg:flex-row gap-5 items-stretch">
             {/* Left/Center Container: Rugby Stadium Field (100% visible & unblocked!) */}
             <div className="flex-1 min-w-0 flex flex-col justify-center">
               {activePlayer && (

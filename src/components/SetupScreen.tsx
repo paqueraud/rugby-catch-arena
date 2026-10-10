@@ -404,7 +404,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
             </div>
 
             {/* Player Count Buttons */}
-            <div className="flex items-center gap-1.5 bg-slate-800/80 p-1 rounded-xl border border-slate-700">
+            <div className="flex flex-wrap items-center gap-1.5 bg-slate-800/80 p-1 rounded-xl border border-slate-700 max-w-full">
               {[1, 2, 3, 4, 5].map((num) => (
                 <button
                   key={num}

@@ -450,9 +450,9 @@ export const StadiumField: React.FC<StadiumFieldProps> = ({
       </div>
 
       {/* TOP ARENA HUD */}
-      <div className="absolute top-3 inset-x-3 sm:inset-x-5 flex items-center justify-between z-20 pointer-events-auto">
+      <div className="absolute top-3 inset-x-3 sm:inset-x-5 flex items-center justify-between gap-2 z-20 pointer-events-auto">
         {/* Active Player Card Banner */}
-        <div className="flex items-center gap-3 bg-slate-900/90 backdrop-blur-md border border-slate-700/80 px-3.5 py-2 rounded-xl shadow-lg">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 bg-slate-900/90 backdrop-blur-md border border-slate-700/80 px-2.5 sm:px-3.5 py-2 rounded-xl shadow-lg">
           <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-slate-600 bg-slate-950 shrink-0">
             <img
               src={char.image}
@@ -461,9 +461,9 @@ export const StadiumField: React.FC<StadiumFieldProps> = ({
               referrerPolicy="no-referrer"
             />
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="text-sm font-bold text-white tracking-tight">{player.name}</span>
+              <span className="text-sm font-bold text-white tracking-tight truncate">{player.name}</span>
               <span className="text-[10px] px-1.5 py-0.2 bg-slate-800 text-slate-300 rounded font-semibold uppercase">
                 {player.isHuman ? 'Humain' : 'Ordi'}
               </span>
@@ -475,17 +475,17 @@ export const StadiumField: React.FC<StadiumFieldProps> = ({
         </div>
 
         {/* Turn Catch Counter & Sound Toggle */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {/* Balls caught in this turn: 3 balls maximum */}
-          <div className="bg-slate-900/90 backdrop-blur-md border border-slate-700/80 px-3 py-1.5 rounded-xl shadow-lg flex items-center gap-2">
-            <span className="text-xs text-slate-300 uppercase tracking-wider font-semibold">Ballons :</span>
-            <div className="flex items-center gap-1.5">
+          <div className="bg-slate-900/90 backdrop-blur-md border border-slate-700/80 px-2 sm:px-3 py-1.5 rounded-xl shadow-lg flex items-center gap-2">
+            <span className="hidden sm:inline text-xs text-slate-300 uppercase tracking-wider font-semibold">Ballons :</span>
+            <div className="flex items-center gap-1 sm:gap-1.5">
               {[0, 1, 2].map((idx) => {
                 const caught = idx < activeBallsCaught;
                 return (
                   <div
                     key={idx}
-                    className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${
+                    className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center transition-all ${
                       caught
                         ? 'bg-amber-500 text-slate-950 shadow-[0_0_12px_rgba(245,158,11,0.9)] scale-110 font-bold text-sm'
                         : 'bg-slate-800/80 border border-slate-700 text-slate-500 text-xs'
@@ -781,7 +781,7 @@ export const StadiumField: React.FC<StadiumFieldProps> = ({
 
       {/* BOTTOM ARENA FOOTER BAR */}
       <div className="absolute bottom-3 inset-x-3 sm:inset-x-5 flex items-center justify-between text-xs text-slate-300 bg-slate-950/80 backdrop-blur-md px-4 py-2 rounded-xl border border-slate-800 z-20">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 min-w-0">
           {settings.difficulty === 'cauchemar' ? (
             <>
               <span className="text-purple-400 font-bold">☠️ Mode Cauchemar</span>

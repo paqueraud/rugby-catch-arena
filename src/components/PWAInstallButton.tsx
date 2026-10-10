@@ -35,7 +35,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ variant = 'h
     <>
       <button
         onClick={handleAction}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer ${
+        className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-2 sm:py-1.5 rounded-xl shrink-0 text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer ${
           variant === 'header'
             ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white border border-emerald-400/40 shadow-emerald-950/40'
             : 'bg-emerald-600 hover:bg-emerald-500 text-white w-full justify-center py-2.5'
@@ -43,7 +43,11 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ variant = 'h
         title="Installer l'application sur votre tablette ou smartphone"
       >
         <Download className="w-3.5 h-3.5 text-emerald-200 animate-bounce" />
-        <span>Installer l'App {isTablet ? 'sur Tablette' : ''}</span>
+        {variant === 'header' ? (
+          <span className="hidden sm:inline whitespace-nowrap">Installer l'App</span>
+        ) : (
+          <span>Installer l'App {isTablet ? 'sur Tablette' : ''}</span>
+        )}
       </button>
 
       {/* Guide Modal for iPad / Tablet / Chrome */}
